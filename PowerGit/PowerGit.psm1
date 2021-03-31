@@ -12,11 +12,21 @@
 
 using namespace System.Runtime.InteropServices
 
-if (-not (Test-Path "$PSScriptRoot/Assemblies/installed")) {
+if ($psISE) {
+
+    $actualroot=Split-Path -Path $psISE.CurrentFile.FullPath        
+}
+else {
+    $actualroot=$PSScriptRoot
+}
+
+if (-not (Test-Path "$actualroot/Assemblies/installed")) {
     $runtime = if ($IsMacOS) {
         'osx'
     } else {
-        $arch = [RuntimeInformation]::OSArchitecture.ToString().ToLower()
+        if ($env:PROCESSOR_ARCHITECTURE="AMD64") {
+        $arch = "x64"} else {
+        $arch = "x86"}
         $os = if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
             'win'
         } elseif ($IsLinux) {
@@ -37,12 +47,12 @@ if (-not (Test-Path "$PSScriptRoot/Assemblies/installed")) {
         "$os-$arch"
     }
 
-    Copy-Item "$PSScriptRoot/Assemblies/$runtime/native/*.*" "$PSScriptRoot/Assemblies/" -ErrorAction Stop
-    Out-File "$PSScriptRoot/Assemblies/installed"
+    Copy-Item "$actualroot/Assemblies/$runtime/native/*.*" "$actualroot/Assemblies/" -ErrorAction Stop
+    Out-File "$actualroot/Assemblies/installed"
 }
 
-Import-Module "$PSScriptRoot/Assemblies/LibGit2Sharp.dll"
-Import-Module "$PSScriptRoot/Assemblies/PowerGit.dll"
+Import-Module "$actualroot/Assemblies/LibGit2Sharp.dll"
+Import-Module "$actualroot/Assemblies/PowerGit.dll"
 
 # $sshCmd = Get-Command 'ssh' -ErrorAction Ignore
 # if ($sshCmd) {
@@ -62,5 +72,5 @@ Import-Module "$PSScriptRoot/Assemblies/PowerGit.dll"
 #     Write-Warning -Message ('SSH support is disabled. To enable SSH, please install Git for Windows. PowerGit uses the version of SSH that ships with Git for Windows.')
 # }
 
-Get-ChildItem -Path "$PSScriptRoot/Functions", "$PSScriptRoot/Completers" -File -Filter '*.ps1' |
+Get-ChildItem -Path "$actualroot/Functions", "$actualroot/Completers" -File -Filter '*.ps1' |
     ForEach-Object { . $_.FullName }
